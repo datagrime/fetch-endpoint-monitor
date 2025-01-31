@@ -1,5 +1,13 @@
 # Fetch Endpoint Monitor
 
+## Cloning the Repository
+
+1. Clone the repository:
+    ```sh
+    git clone https://github.com/datagrime/fetch-endpoint-monitor.git
+    cd fetch-endpoint-monitor
+    ```
+
 ## Installing Poetry
 
 1. Install Poetry by following the instructions on [python-poetry.org](https://python-poetry.org/docs/#installation).
@@ -12,6 +20,7 @@
     ```
 
 ## Running the Python Script with Poetry
+
 
 1. Install the required dependencies:
     ```sh
@@ -33,7 +42,7 @@
     ```sh
     cd go
     ```
-3. Build the Go script:
+2. Build the Go script:
     ```sh
     go build -o monitor main.go
     ```
