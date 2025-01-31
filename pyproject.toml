@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "fetch-url-monitor"
+version = "0.1.0"
+description = "HTTP endpoint health monitor"
+authors = ["Alex May <alex.c.may@gmail.com>"]
+package-mode = false
+
+
+[tool.poetry.dependencies]
+python = "^3.8"
+aiohttp = "^3.9.3"
+pyyaml = "^6.0.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
