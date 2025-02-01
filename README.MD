@@ -15,16 +15,6 @@ Poetry requires **Python 3.7 or newer** to be installed on your system.
 
 ## Installing Poetry
 
-### Install Poetry (Python Dependency Manager)
-Before installing Poetry, make sure **Python 3.7 or newer** is installed on your system. You can check this by running:
-```sh
-python --version
-```
- or 
-```sh
-python3 --version
-```
-
 ### macOS & Linux
 
 1. Install Poetry:
@@ -35,7 +25,6 @@ python3 --version
     ```sh
     export PATH="$HOME/.poetry/bin:$PATH"
     ```
-    Add this line to `~/.bashrc`, `~/.bash_profile`, or `~/.zshrc` to make it persistent.
 
 ### Windows (PowerShell)
 
