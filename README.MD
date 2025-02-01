@@ -28,8 +28,9 @@
     ```
 2. Run the Python script:
     ```sh
-    poetry run python python/main.py
+    poetry run python python/main.py [CONFIG_FILE]
     ```
+    - If no `CONFIG_FILE` is provided, the script will default to using [example.yaml](http://_vscodecontentref_/0).
 
 ## Installing Go
 
@@ -46,7 +47,11 @@
     ```sh
     go build -o monitor main.go
     ```
-3. Run with endpoint config:
+3. Run the monitor with the default YAML file:
     ```sh
-    ./monitor ../endpoint.yaml
+    ./monitor ../example.yaml
+    ```
+4. Run the monitor with a custom YAML file:
+    ```sh
+    ./monitor path/to/custom.yaml
     ```

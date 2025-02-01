@@ -34,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	configFile := "endpoint.yaml"
+	configFile := "example.yaml"
 	if len(os.Args) == 2 {
 		configFile = os.Args[1]
 	}

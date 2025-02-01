@@ -73,7 +73,7 @@ async def main():
         print("Usage: python main.py [CONFIG_FILE]")
         sys.exit(1)
 
-    file_path = sys.argv[1] if len(sys.argv) == 2 else "endpoint.yaml"
+    file_path = sys.argv[1] if len(sys.argv) == 2 else "example.yaml"
     endpoints = await load_yaml(file_path) # Load endpoints from a YAML file
 
     if not endpoints:
