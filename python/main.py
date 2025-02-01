@@ -1,116 +1,87 @@
 import sys
 import asyncio
 import aiohttp
-import json
-import time
 import yaml
+import time
 from urllib.parse import urlparse
-from collections import defaultdict
+from collections import OrderedDict
 
-def load_yaml(config_file_path):
-    """Load YAML configuration from file."""
+# Load YAML configuration from a file
+async def load_yaml(file_path):
     try:
-        with open(config_file_path, 'r') as f:
-            endpoints = yaml.safe_load(f)
-        if not isinstance(endpoints, list):
-            print("Invalid YAML format: expected a list of endpoints.")
-            return []
-        return [ep for ep in endpoints if ep.get("url") and ep.get("name")]
+        with open(file_path, 'r') as f:
+            endpoints = yaml.safe_load(f) or []
+        return [ep for ep in endpoints if "url" in ep and "name" in ep]
     except Exception as e:
         print(f"Error loading YAML file: {e}")
         return []
 
+# Check the health of an endpoint asynchronously
 async def check_endpoint(session, endpoint):
-    """Check the status of a single endpoint asynchronously."""
-    url = endpoint.get("url")
+    url = endpoint["url"]
+    method = endpoint.get("method", "GET").upper()
+    headers = endpoint.get("headers", {})
+    body = endpoint.get("body")
+
     try:
         start_time = time.monotonic()
-        async with session.request(
-            method=endpoint.get("method", "GET").upper(),
-            url=url,
-            headers=endpoint.get("headers", {}),
-            json=json.loads(endpoint["body"]) if "body" in endpoint else None,
-            timeout=aiohttp.ClientTimeout(total=4.5)
-        ) as response:
-            latency = (time.monotonic() - start_time) * 1000
-            is_up = 200 <= response.status < 300 and latency < 500
-            return url, is_up
-    except asyncio.CancelledError:
-        raise
-    except Exception:
-        return url, False
+        async with session.request(method, url, headers=headers, json=body, timeout=aiohttp.ClientTimeout(total=4.5)) as response:
+            latency = (time.monotonic() - start_time) * 1000  # Convert latency to ms
+            return url, 200 <= response.status < 300 and latency < 500
+    except aiohttp.ClientError as e:
+        print(f"Request error for {url}: {e}")
+    except asyncio.TimeoutError:
+        print(f"Timeout error for {url}")
+    except Exception as e:
+        print(f"Unexpected error for {url}: {e}")
 
-async def monitor_endpoints(config_file_path):
-    """Main monitoring loop with concurrent health checks."""
-    endpoints = load_yaml(config_file_path)
+    return url, False  # Mark as DOWN if an exception occurs
+
+# Monitor endpoints by sending health checks
+async def monitor_endpoints(endpoints):
+    domain_stats = OrderedDict()  # Maintain insertion order for logging
+
+    # Create a single HTTP session for all monitoring cycles
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit_per_host=5)) as session:
+        try:
+            while True:
+                cycle_start = time.monotonic()  # Record cycle start time
+
+                # Execute health checks concurrently
+                tasks = [asyncio.create_task(check_endpoint(session, ep)) for ep in endpoints]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                # Process results
+                for url, is_up in filter(lambda r: isinstance(r, tuple), results):
+                    domain = urlparse(url).netloc
+                    if domain not in domain_stats:
+                        domain_stats[domain] = {"total": 0, "up": 0}
+                    domain_stats[domain]["total"] += 1
+                    domain_stats[domain]["up"] += is_up
+
+                # Log availability percentage
+                for domain, stats in domain_stats.items():
+                    print(f"{domain} has {round((stats['up'] / stats['total']) * 100)}% availability")
+
+                await asyncio.sleep(max(0, 15 - (time.monotonic() - cycle_start)))
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            print("\nMonitor stopped.")
+
+# Main function to handle CLI arguments and start monitoring
+async def main():
+    if len(sys.argv) > 2:
+        print("Usage: python main.py [CONFIG_FILE]")
+        sys.exit(1)
+
+    file_path = sys.argv[1] if len(sys.argv) == 2 else "endpoint.yaml"
+    endpoints = await load_yaml(file_path)  # Read YAML once
+
     if not endpoints:
         print("No valid endpoints to monitor.")
         return
 
-    # Track domains in order of first appearance
-    domains_order = []
-    seen_domains = set()
-    for endpoint in endpoints:
-        domain = urlparse(endpoint["url"]).netloc
-        if domain not in seen_domains:
-            seen_domains.add(domain)
-            domains_order.append(domain)
+    await monitor_endpoints(endpoints)  # Pass already loaded endpoints
 
-    domain_stats = defaultdict(lambda: {"total": 0, "up": 0})
-
-    session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=100))
-    
-    try:
-        while True:
-            cycle_start = time.monotonic()
-            
-            # Process all endpoints concurrently
-            results = await asyncio.gather(
-                *(check_endpoint(session, ep) for ep in endpoints),
-                return_exceptions=True
-            )
-            
-            # Update statistics
-            for result in results:
-                if isinstance(result, Exception):
-                    continue
-                url, is_up = result
-                domain = urlparse(url).netloc
-                domain_stats[domain]["total"] += 1
-                domain_stats[domain]["up"] += is_up
-            
-            # Calculate and display percentages
-            for domain in domains_order:
-                stats = domain_stats[domain]
-                percent = round((stats["up"] / stats["total"]) * 100) if stats["total"] else 0
-                print(f"{domain} has {percent}% availability percentage")
-            
-            # Maintain 15-second cycle
-            elapsed = time.monotonic() - cycle_start
-            await asyncio.sleep(max(0.0, 15 - elapsed))
-
-    except asyncio.CancelledError:
-        print("\nMonitoring stopped.")
-    except KeyboardInterrupt:
-        print("\nCTRL+C received. Exiting gracefully...")
-    finally:
-        await session.close()
-
-async def main():
-    """Run monitoring with config file argument handling."""
-    if len(sys.argv) > 2:
-        print("Usage: python main.py [CONFIG_FILE]")
-        sys.exit(1)
-    
-    config_file = sys.argv[1] if len(sys.argv) == 2 else "endpoint.yaml"
-    
-    try:
-        await monitor_endpoints(config_file)
-    except KeyboardInterrupt:
-        print("\nCTRL+C received. Exiting gracefully...")
-
+# Run the script asynchronously
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\nProgram terminated by user.")
+    asyncio.run(main())
