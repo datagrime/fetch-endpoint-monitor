@@ -39,19 +39,19 @@ async def check_endpoint(session, endpoint):
 
 # Monitor endpoints by sending health checks
 async def monitor_endpoints(endpoints):
-    domain_stats = OrderedDict()  # Maintain insertion order for logging
+    domain_stats = OrderedDict() # Track availability stats by domain
 
     # Create a single HTTP session for all monitoring cycles
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit_per_host=5)) as session:
         try:
             while True:
-                cycle_start = time.monotonic()  # Record cycle start time
+                cycle_start = time.monotonic()    
 
                 # Execute health checks concurrently
                 tasks = [asyncio.create_task(check_endpoint(session, ep)) for ep in endpoints]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                # Process results
+                # Reset domain stats for each cycle
                 for url, is_up in filter(lambda r: isinstance(r, tuple), results):
                     domain = urlparse(url).netloc
                     if domain not in domain_stats:
@@ -67,14 +67,14 @@ async def monitor_endpoints(endpoints):
         except (asyncio.CancelledError, KeyboardInterrupt):
             print("\nMonitor stopped.")
 
-# Main function to handle CLI arguments and start monitoring
+# Main entry point of the script to load and monitor endpoints
 async def main():
     if len(sys.argv) > 2:
         print("Usage: python main.py [CONFIG_FILE]")
         sys.exit(1)
 
     file_path = sys.argv[1] if len(sys.argv) == 2 else "endpoint.yaml"
-    endpoints = await load_yaml(file_path)  # Read YAML once
+    endpoints = await load_yaml(file_path) # Load endpoints from a YAML file
 
     if not endpoints:
         print("No valid endpoints to monitor.")
