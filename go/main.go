@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,11 +28,6 @@ type DomainStats struct {
 	Up    int
 }
 
-type CheckResult struct {
-	Domain string
-	Up     bool
-}
-
 func main() {
 	if len(os.Args) > 2 {
 		fmt.Println("Usage: ./monitor [config-file]")
@@ -46,19 +40,15 @@ func main() {
 	}
 
 	endpoints, err := loadConfig(configFile)
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
+	if err != nil || len(endpoints) == 0 {
+		fmt.Printf("Error loading config or no valid endpoints: %v\n", err)
 		os.Exit(1)
-	}
-
-	if len(endpoints) == 0 {
-		fmt.Println("No valid endpoints to monitor")
-		os.Exit(0)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Handle CTRL+C (SIGINT) for graceful shutdown
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 	go func() {
@@ -71,7 +61,7 @@ func main() {
 }
 
 func loadConfig(filename string) ([]EndpointConfig, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +72,8 @@ func loadConfig(filename string) ([]EndpointConfig, error) {
 	}
 
 	validEndpoints := make([]EndpointConfig, 0, len(endpoints))
+	seenDomains := make(map[string]bool)
+
 	for _, ep := range endpoints {
 		if ep.URL == "" || ep.Name == "" {
 			continue
@@ -96,6 +88,10 @@ func loadConfig(filename string) ([]EndpointConfig, error) {
 		}
 		ep.Domain = u.Hostname()
 
+		if !seenDomains[ep.Domain] {
+			seenDomains[ep.Domain] = true
+		}
+
 		validEndpoints = append(validEndpoints, ep)
 	}
 
@@ -103,60 +99,58 @@ func loadConfig(filename string) ([]EndpointConfig, error) {
 }
 
 func monitorEndpoints(ctx context.Context, endpoints []EndpointConfig) {
-	stats := make(map[string]*DomainStats)
-	var statsMutex sync.Mutex
+	var stats sync.Map
 	domainOrder := getDomainOrder(endpoints)
-
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
-	for {
+	for range ticker.C {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		default:
+			wg := sync.WaitGroup{}
 			results := make(chan CheckResult, len(endpoints))
-			var wg sync.WaitGroup
 
 			for _, ep := range endpoints {
 				wg.Add(1)
 				go func(ep EndpointConfig) {
 					defer wg.Done()
-					up := checkEndpoint(ep)
-					results <- CheckResult{Domain: ep.Domain, Up: up}
+					results <- CheckResult{Domain: ep.Domain, Up: checkEndpoint(ep)}
 				}(ep)
 			}
 
+			// Close results channel when all checks are done
 			go func() {
 				wg.Wait()
 				close(results)
 			}()
 
-			statsMutex.Lock()
+			// Collect results and update stats
 			for result := range results {
-				if stats[result.Domain] == nil {
-					stats[result.Domain] = &DomainStats{}
-				}
-				stats[result.Domain].Total++
+				stat, _ := stats.LoadOrStore(result.Domain, &DomainStats{})
+				d := stat.(*DomainStats)
+				d.Total++
 				if result.Up {
-					stats[result.Domain].Up++
+					d.Up++
 				}
 			}
-			statsMutex.Unlock()
 
-			printStats(stats, domainOrder)
+			printStats(&stats, domainOrder)
 		}
 	}
 }
 
+type CheckResult struct {
+	Domain string
+	Up     bool
+}
+
 func checkEndpoint(ep EndpointConfig) bool {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := &http.Client{Timeout: 5 * time.Second}
 
 	var req *http.Request
 	var err error
-
 	start := time.Now()
 
 	if ep.Body != "" {
@@ -165,7 +159,6 @@ func checkEndpoint(ep EndpointConfig) bool {
 		if err != nil {
 			return false
 		}
-		
 		if _, exists := ep.Headers["Content-Type"]; !exists {
 			req.Header.Set("Content-Type", "application/json")
 		}
@@ -202,19 +195,25 @@ func getDomainOrder(endpoints []EndpointConfig) map[string]int {
 	return order
 }
 
-func printStats(stats map[string]*DomainStats, order map[string]int) {
+func printStats(stats *sync.Map, order map[string]int) {
 	domains := make([]string, len(order))
 	for domain, index := range order {
 		domains[index] = domain
 	}
 
 	for _, domain := range domains {
-		s := stats[domain]
-		if s == nil || s.Total == 0 {
+		stat, ok := stats.Load(domain)
+		if !ok {
 			fmt.Printf("%s has 0%% availability percentage\n", domain)
 			continue
 		}
-		percent := float64(s.Up) / float64(s.Total) * 100
-		fmt.Printf("%s has %.0f%% availability percentage\n", domain, percent)
+
+		s := stat.(*DomainStats)
+		if s.Total == 0 {
+			fmt.Printf("%s has 0%% availability percentage\n", domain)
+		} else {
+			percent := float64(s.Up) / float64(s.Total) * 100
+			fmt.Printf("%s has %.0f%% availability percentage\n", domain, percent)
+		}
 	}
 }
