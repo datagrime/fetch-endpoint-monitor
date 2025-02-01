@@ -1,44 +1,42 @@
 # Fetch Endpoint Monitor
 
-## Cloning the Repository
+## Getting Started
 
-To get started, clone the repository on your local machine:
+Clone this repo to your machine:
 
 ```sh
 git clone https://github.com/datagrime/fetch-endpoint-monitor.git
 cd fetch-endpoint-monitor
 ```
 
-## Prerequisite: Python Installation
+Works on **Windows, macOS, and Linux**.
 
-Poetry requires **Python 3.7 or newer** to be installed on your system.
+## Prerequisite: Install Python
 
-## Installing Poetry
+Make sure **Python 3.7 or newer** is installed before proceeding. Check by running:
+```sh
+python --version
+```
+
+## Install Poetry (Dependency Manager)
+
+Poetry manages Python dependencies. Install it based on your platform:
 
 ### macOS & Linux
-
-1. Install Poetry:
-    ```sh
-    curl -sSL https://install.python-poetry.org | python3 -
-    ```
-2. Add Poetry to your PATH:
-    ```sh
-    export PATH="$HOME/.poetry/bin:$PATH"
-    ```
+```sh
+curl -sSL https://install.python-poetry.org | python3 -
+export PATH="$HOME/.poetry/bin:$PATH"
+```
 
 ### Windows (PowerShell)
+```powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+```
+Restart your terminal or manually add `C:\Users\YourUser\.poetry\bin` to your system `Path`.
 
-1. Install Poetry:
-    ```powershell
-    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-    ```
-2. Add Poetry to your PATH by restarting your terminal or manually adding `C:\Users\YourUser\.poetry\bin` to the `Path` environment variable.
+## Run the Python Script
 
-## Running the Python Script with Poetry
-
-Once Poetry is installed, install dependencies and run the script:
-
-1. Install required dependencies:
+1. Install dependencies:
     ```sh
     poetry install
     ```
@@ -46,13 +44,12 @@ Once Poetry is installed, install dependencies and run the script:
     ```sh
     poetry run python python/main.py [CONFIG_FILE]
     ```
-    - If no `CONFIG_FILE` is provided, the script will default to using `example.yaml`.
+    - Defaults to `example.yaml` if no config file is provided.
 
-## Installing Go
+## Install Go
 
-Download and install Go based on your platform:
-
-- **Windows:** Download from [golang.org](https://golang.org/dl/) and install it.
+Get Go for your platform:
+- **Windows:** Download from [golang.org](https://golang.org/dl/) and install.
 - **macOS (Homebrew):**
   ```sh
   brew install go
@@ -62,29 +59,26 @@ Download and install Go based on your platform:
   sudo apt install golang-go  # Debian/Ubuntu
   ```
 
-Ensure `go` is accessible in your terminal by running:
+Verify Go installation:
 ```sh
 go version
 ```
 
-## Running the Go Script
+## Run the Go Script
 
-1. Navigate to the Go script directory:
+1. Go to the script directory:
     ```sh
     cd go
     ```
-2. Build the Go executable:
+2. Build the executable:
     ```sh
     go build -o monitor main.go
     ```
-3. Run the monitor with a configuration file:
+3. Run it with a config file:
     ```sh
-    ./monitor ../example.yaml  # Default YAML file
-    ./monitor path/to/[CONFIG_FILE]  # Custom YAML file
+    ./monitor ../example.yaml  # Default config
+    ./monitor path/to/[CONFIG_FILE]  # Custom config
     ```
-    **Windows users** should run `monitor.exe` instead of `./monitor`.
+    **Windows users** run `monitor.exe` instead.
 
----
-
-With these steps, users on **Windows, macOS, and Linux** should be able to set up and run the Fetch Endpoint Monitor seamlessly!
 
