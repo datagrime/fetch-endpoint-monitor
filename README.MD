@@ -9,8 +9,6 @@ git clone https://github.com/datagrime/fetch-endpoint-monitor.git
 cd fetch-endpoint-monitor
 ```
 
-This works on **Windows (Git Bash, PowerShell, WSL), macOS, and Linux**.
-
 ## Prerequisite: Python Installation
 
 Poetry requires **Python 3.7 or newer** to be installed on your system.
@@ -26,9 +24,6 @@ python --version
 ```sh
 python3 --version
 ```
-
-
-Poetry is used for managing Python dependencies. Follow these platform-specific instructions:
 
 ### macOS & Linux
 
@@ -76,8 +71,6 @@ Download and install Go based on your platform:
 - **Linux:**
   ```sh
   sudo apt install golang-go  # Debian/Ubuntu
-  sudo dnf install golang      # Fedora
-  sudo pacman -S go            # Arch
   ```
 
 Ensure `go` is accessible in your terminal by running:
