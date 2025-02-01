@@ -2,15 +2,22 @@
 
 ## Cloning the Repository
 
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/datagrime/fetch-endpoint-monitor.git
-    cd fetch-endpoint-monitor
-    ```
+To get started, clone the repository on your local machine:
+
+```sh
+git clone https://github.com/datagrime/fetch-endpoint-monitor.git
+cd fetch-endpoint-monitor
+```
+
+This works on **Windows (Git Bash, PowerShell, WSL), macOS, and Linux**.
 
 ## Installing Poetry
 
-1. Install Poetry by following the instructions on [python-poetry.org](https://python-poetry.org/docs/#installation).
+Poetry is used for managing Python dependencies. Follow these platform-specific instructions:
+
+### macOS & Linux
+
+1. Install Poetry:
     ```sh
     curl -sSL https://install.python-poetry.org | python3 -
     ```
@@ -18,40 +25,64 @@
     ```sh
     export PATH="$HOME/.poetry/bin:$PATH"
     ```
+    Add this line to `~/.bashrc`, `~/.bash_profile`, or `~/.zshrc` to make it persistent.
+
+### Windows (PowerShell)
+
+1. Install Poetry:
+    ```powershell
+    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+    ```
+2. Add Poetry to your PATH by restarting your terminal or manually adding `C:\Users\YourUser\.poetry\bin` to the `Path` environment variable.
 
 ## Running the Python Script with Poetry
 
+Once Poetry is installed, install dependencies and run the script:
 
-1. Install the required dependencies:
+1. Install required dependencies:
     ```sh
     poetry install
     ```
-2. Run the Python script:
+2. Run the script:
     ```sh
     poetry run python python/main.py [CONFIG_FILE]
     ```
-    - If no `CONFIG_FILE` is provided, the script will default to using [example.yaml](http://_vscodecontentref_/0).
+    - If no `CONFIG_FILE` is provided, the script will default to using `example.yaml`.
 
 ## Installing Go
 
-1. Download and install Go from [golang.org](https://golang.org/dl/).
-2. Follow the instructions for your operating system to complete the installation.
+Download and install Go based on your platform:
+
+- **Windows:** Download from [golang.org](https://golang.org/dl/) and install it.
+- **macOS (Homebrew):**
+  ```sh
+  brew install go
+  ```
+- **Linux:**
+  ```sh
+  sudo apt install golang-go  # Debian/Ubuntu
+  sudo dnf install golang      # Fedora
+  sudo pacman -S go            # Arch
+  ```
+
+Ensure `go` is accessible in your terminal by running:
+```sh
+go version
+```
 
 ## Running the Go Script
 
-1. Navigate to the directory containing the Go script:
+1. Navigate to the Go script directory:
     ```sh
     cd go
     ```
-2. Build the Go script:
+2. Build the Go executable:
     ```sh
     go build -o monitor main.go
     ```
-3. Run the monitor with the default YAML file:
+3. Run the monitor with a configuration file:
     ```sh
-    ./monitor ../example.yaml
+    ./monitor ../example.yaml  # Default YAML file
+    ./monitor path/to/[CONFIG_FILE]  # Custom YAML file
     ```
-4. Run the monitor with a custom YAML file:
-    ```sh
-    ./monitor path/to/custom.yaml
-    ```
+    **Windows users** should run `monitor.exe` instead of `./monitor`.
